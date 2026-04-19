@@ -23,7 +23,7 @@ def list_windows():
 def capture_window(hwnd, region=None):
     """
     捕获窗口图像（支持后台窗口）
-    region: (center_x, center_y, radius) 圆形区域，或 (x, y, width, height) 矩形区域
+    region: (x, y, width, height) 矩形区域
     """
     try:
         left, top, right, bottom = win32gui.GetWindowRect(hwnd)
@@ -55,19 +55,8 @@ def capture_window(hwnd, region=None):
         win32gui.ReleaseDC(hwnd, hwndDC)
         
         if region:
-            if len(region) == 3:
-                # 圆形区域
-                cx, cy, radius = region
-                # 裁剪为正方形包围盒
-                x1 = max(0, cx - radius)
-                y1 = max(0, cy - radius)
-                x2 = min(width, cx + radius)
-                y2 = min(height, cy + radius)
-                img = img.crop((x1, y1, x2, y2))
-            else:
-                # 矩形区域（兼容旧版）
-                x, y, w, h = region
-                img = img.crop((x, y, x + w, y + h))
+            x, y, w, h = region
+            img = img.crop((x, y, x + w, y + h))
         
         return img if result == 1 else None
     except:

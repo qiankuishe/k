@@ -1,4 +1,4 @@
-"""交互式圆形区域选择功能 - 直接在目标窗口上显示"""
+"""交互式矩形区域选择功能 - 用于文字识别"""
 import tkinter as tk
 import win32gui
 import win32con
@@ -8,6 +8,7 @@ class RegionSelector:
         self.hwnd = hwnd
         self.callback = callback
         self.dragging = False
+        self.resizing = False
         self.countdown = 15
         
         # 获取目标窗口位置和大小
@@ -15,10 +16,11 @@ class RegionSelector:
         width = right - left
         height = bottom - top
         
-        # 初始圆心在窗口中心
-        self.center_x = width // 2
-        self.center_y = height // 2
-        self.radius = 50
+        # 初始矩形在窗口中心，适合 "4/4" 文字的比例
+        self.rect_width = 60
+        self.rect_height = 25
+        self.rect_x = width // 2 - self.rect_width // 2
+        self.rect_y = height // 2 - self.rect_height // 2
         
         # 创建透明覆盖窗口
         self.root = tk.Toplevel()
@@ -38,19 +40,19 @@ class RegionSelector:
         self.canvas.bind("<Button-3>", lambda e: self.cancel())
         self.canvas.bind("<MouseWheel>", self.on_scroll)
         
-        # 键盘事件绑定到窗口
+        # 键盘事件
         self.root.bind("<Escape>", lambda e: self.cancel())
         self.root.bind("<Return>", lambda e: self.confirm())
-        self.root.bind("<KP_Enter>", lambda e: self.confirm())  # 小键盘回车
-        self.root.focus_force()  # 确保窗口获得焦点
+        self.root.bind("<KP_Enter>", lambda e: self.confirm())
+        self.root.focus_force()
         
-        # 绘制圆形
-        self.draw_circle()
+        # 绘制矩形
+        self.draw_rect()
         
         # 显示提示
         self.hint_text = self.canvas.create_text(
             width // 2, 30,
-            text=f"拖动圆形 | 滚轮调大小 | 回车确认 | 右键取消 - {self.countdown}秒",
+            text=f"拖动矩形 | 滚轮调大小 | 回车确认 | 右键取消 - {self.countdown}秒",
             fill="yellow", font=("Arial", 12, "bold")
         )
         
@@ -58,112 +60,57 @@ class RegionSelector:
         self.update_countdown()
     
     def on_click(self, event):
-        # 检查是否点击在圆内
-        dx = event.x - self.center_x
-        dy = event.y - self.center_y
-        if dx*dx + dy*dy <= self.radius*self.radius:
+        # 检查是否点击在矩形内
+        if (self.rect_x <= event.x <= self.rect_x + self.rect_width and
+            self.rect_y <= event.y <= self.rect_y + self.rect_height):
             self.dragging = True
-            self.drag_offset_x = event.x - self.center_x
-            self.drag_offset_y = event.y - self.center_y
+            self.drag_offset_x = event.x - self.rect_x
+            self.drag_offset_y = event.y - self.rect_y
     
     def on_drag(self, event):
         if self.dragging:
-            self.center_x = event.x - self.drag_offset_x
-            self.center_y = event.y - self.drag_offset_y
-            self.draw_circle()
+            self.rect_x = event.x - self.drag_offset_x
+            self.rect_y = event.y - self.drag_offset_y
+            self.draw_rect()
     
     def on_release(self, event):
         self.dragging = False
     
     def on_scroll(self, event):
-        # 滚轮调整半径
+        # 滚轮调整大小，保持宽高比约 2.4:1
         delta = 5 if event.delta > 0 else -5
-        self.radius = max(8, min(150, self.radius + delta))
-        self.draw_circle()
+        self.rect_width = max(30, min(200, self.rect_width + delta))
+        self.rect_height = int(self.rect_width / 2.4)
+        self.draw_rect()
     
-    def draw_circle(self):
-        self.canvas.delete("circle")
-        self.canvas.delete("radius_text")
-        self.canvas.delete("magnifier")
+    def draw_rect(self):
+        self.canvas.delete("rect")
         
-        x1 = self.center_x - self.radius
-        y1 = self.center_y - self.radius
-        x2 = self.center_x + self.radius
-        y2 = self.center_y + self.radius
-        
-        # 绘制虚线圆形
-        self.canvas.create_oval(x1, y1, x2, y2, 
-                               outline='red', width=2, dash=(5, 3), tags="circle")
-        # 绘制十字中心线
-        self.canvas.create_line(self.center_x - 10, self.center_y,
-                               self.center_x + 10, self.center_y,
-                               fill='red', width=2, tags="circle")
-        self.canvas.create_line(self.center_x, self.center_y - 10,
-                               self.center_x, self.center_y + 10,
-                               fill='red', width=2, tags="circle")
-        
-        # 显示半径
-        self.canvas.create_text(
-            self.center_x, self.center_y + self.radius + 20,
-            text=f"半径: {self.radius}px", fill="white", 
-            font=("Arial", 11, "bold"), tags="radius_text"
+        # 绘制虚线矩形
+        self.canvas.create_rectangle(
+            self.rect_x, self.rect_y,
+            self.rect_x + self.rect_width, self.rect_y + self.rect_height,
+            outline='red', width=2, dash=(5, 3), tags="rect"
         )
         
-        # 半径小于15px时显示放大镜
-        if self.radius < 15:
-            mag_size = 100  # 放大镜尺寸
-            
-            # 计算放大镜位置，确保在窗口内
-            window_width = self.canvas.winfo_width()
-            window_height = self.canvas.winfo_height()
-            
-            # 默认在右上方
-            mag_x = self.center_x + 80
-            mag_y = self.center_y - 80
-            
-            # 如果超出右边界，放到左边
-            if mag_x + mag_size//2 > window_width - 10:
-                mag_x = self.center_x - 80
-            
-            # 如果超出上边界，放到下方
-            if mag_y - mag_size//2 < 10:
-                mag_y = self.center_y + 80
-            
-            # 如果超出左边界，调整到右边
-            if mag_x - mag_size//2 < 10:
-                mag_x = self.center_x + 80
-            
-            # 如果超出下边界，调整到上方
-            if mag_y + mag_size//2 > window_height - 10:
-                mag_y = self.center_y - 80
-            
-            # 放大镜背景
-            self.canvas.create_rectangle(mag_x - mag_size//2, mag_y - mag_size//2,
-                                         mag_x + mag_size//2, mag_y + mag_size//2,
-                                         fill='black', outline='yellow', width=3, tags="magnifier")
-            
-            # 放大4倍的圆形
-            scale = 4
-            mag_radius = self.radius * scale
-            self.canvas.create_oval(mag_x - mag_radius, mag_y - mag_radius,
-                                   mag_x + mag_radius, mag_y + mag_radius,
-                                   outline='red', width=2, dash=(3, 2), tags="magnifier")
-            
-            # 放大的十字线
-            cross_size = 10
-            self.canvas.create_line(mag_x - cross_size, mag_y, mag_x + cross_size, mag_y,
-                                   fill='red', width=2, tags="magnifier")
-            self.canvas.create_line(mag_x, mag_y - cross_size, mag_x, mag_y + cross_size,
-                                   fill='red', width=2, tags="magnifier")
-            
-            # 标注
-            self.canvas.create_text(mag_x, mag_y + mag_size//2 + 15,
-                                   text="4x放大", fill="yellow", 
-                                   font=("Arial", 10, "bold"), tags="magnifier")
+        # 绘制十字中心线
+        center_x = self.rect_x + self.rect_width // 2
+        center_y = self.rect_y + self.rect_height // 2
+        self.canvas.create_line(center_x - 10, center_y, center_x + 10, center_y,
+                               fill='red', width=2, tags="rect")
+        self.canvas.create_line(center_x, center_y - 10, center_x, center_y + 10,
+                               fill='red', width=2, tags="rect")
+        
+        # 显示尺寸
+        self.canvas.create_text(
+            center_x, self.rect_y + self.rect_height + 20,
+            text=f"{self.rect_width}×{self.rect_height}px", fill="white", 
+            font=("Arial", 11, "bold"), tags="rect"
+        )
     
     def confirm(self):
-        # 存储圆心和半径（相对坐标）
-        region = (self.center_x, self.center_y, self.radius)
+        # 存储矩形区域（x, y, width, height）
+        region = (self.rect_x, self.rect_y, self.rect_width, self.rect_height)
         
         # 取消窗口置顶
         win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
@@ -181,7 +128,7 @@ class RegionSelector:
     def update_countdown(self):
         if self.countdown > 0:
             self.canvas.itemconfig(self.hint_text, 
-                text=f"拖动圆形 | 滚轮调大小 | 回车确认 | 右键取消 - {self.countdown}秒")
+                text=f"拖动矩形 | 滚轮调大小 | 回车确认 | 右键取消 - {self.countdown}秒")
             self.countdown -= 1
             self.root.after(1000, self.update_countdown)
         else:
