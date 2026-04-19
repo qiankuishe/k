@@ -1,62 +1,70 @@
-"""颜色检测逻辑 - 只检测圆形内部像素"""
+"""OCR文字识别逻辑 - 识别房间人数"""
 import numpy as np
+from PIL import Image
+import pytesseract
 
 def detect_status(img):
-    """检测圆形区域内是否有绿色。返回: 'green' 或 'no_green'"""
+    """识别圆形区域内的文字，判断是否满人。返回: 'green' 或 'no_green'"""
     if img is None:
         return 'no_green'
     
+    try:
+        # 图像预处理：转灰度、二值化、放大
+        img_gray = img.convert('L')
+        
+        # 放大图像提高识别率
+        width, height = img_gray.size
+        img_large = img_gray.resize((width * 3, height * 3), Image.LANCZOS)
+        
+        # 二值化处理
+        arr = np.array(img_large)
+        threshold = np.mean(arr)
+        arr_binary = np.where(arr > threshold, 255, 0).astype(np.uint8)
+        img_binary = Image.fromarray(arr_binary)
+        
+        # OCR识别（只识别数字和斜杠）
+        text = pytesseract.image_to_string(img_binary, config='--psm 7 -c tessedit_char_whitelist=0123456789/')
+        text = text.strip().replace(' ', '').replace('\n', '')
+        
+        # 调试输出
+        if not hasattr(detect_status, 'debug_count'):
+            detect_status.debug_count = 0
+        if detect_status.debug_count < 5:
+            print(f"[调试] OCR识别结果: '{text}'")
+            detect_status.debug_count += 1
+        
+        # 判断是否满人
+        if '4/4' in text or '4／4' in text:
+            return 'green'  # 满人
+        elif '/4' in text or '／4' in text:
+            return 'no_green'  # 有空位 (2/4, 3/4)
+        else:
+            # 识别失败，回退到颜色检测
+            return detect_by_color(img)
+    
+    except Exception as e:
+        # OCR失败，回退到颜色检测
+        return detect_by_color(img)
+
+def detect_by_color(img):
+    """备用方案：颜色检测"""
     arr = np.array(img)
     height, width = arr.shape[:2]
     
-    # 创建圆形遮罩（只检测圆内像素）
     center_x, center_y = width // 2, height // 2
     radius = min(width, height) // 2
     
     y, x = np.ogrid[:height, :width]
     circle_mask = (x - center_x)**2 + (y - center_y)**2 <= radius**2
-    
-    # 只分析圆内的像素
     circle_pixels = arr[circle_mask]
     
     if len(circle_pixels) == 0:
         return 'no_green'
     
-    # 极度宽松的绿色检测（针对小图标）
-    # 策略1：明显绿色 (G > 80 且 G > R*1.2 且 G > B*1.2)
-    green_mask1 = (circle_pixels[:, 1] > 80) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 0] * 1.2) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2] * 1.2)
+    # 简单的绿色检测
+    green_mask = (circle_pixels[:, 1] > circle_pixels[:, 0] + 15) & \
+                 (circle_pixels[:, 1] > circle_pixels[:, 2] + 15) & \
+                 (circle_pixels[:, 1] > 50)
     
-    # 策略2：中等绿色 (G > 60 且 G > R+20 且 G > B+20)
-    green_mask2 = (circle_pixels[:, 1] > 60) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 0] + 20) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2] + 20)
-    
-    # 策略3：浅绿色 (G > 50 且 G > R+15 且 G > B+15)
-    green_mask3 = (circle_pixels[:, 1] > 50) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 0] + 15) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2] + 15)
-    
-    # 策略4：任何绿色倾向 (G是最大通道 且 G > 40)
-    green_mask4 = (circle_pixels[:, 1] > circle_pixels[:, 0]) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2]) & \
-                  (circle_pixels[:, 1] > 40)
-    
-    # 合并所有策略
-    green_mask = green_mask1 | green_mask2 | green_mask3 | green_mask4
     green_pixels = np.sum(green_mask)
-    
-    # 调试输出
-    if not hasattr(detect_status, 'debug_count'):
-        detect_status.debug_count = 0
-    if detect_status.debug_count < 5:
-        avg_r = np.mean(circle_pixels[:, 0])
-        avg_g = np.mean(circle_pixels[:, 1])
-        avg_b = np.mean(circle_pixels[:, 2])
-        max_g = np.max(circle_pixels[:, 1])
-        print(f"[调试] 圆内像素数: {len(circle_pixels)}, 绿色像素: {green_pixels}, 平均RGB: R={avg_r:.1f} G={avg_g:.1f} B={avg_b:.1f}, 最大G={max_g}")
-        detect_status.debug_count += 1
-    
-    # 只要有超过3个绿色像素就认为是绿色（降低阈值）
     return 'green' if green_pixels > 3 else 'no_green'
