@@ -54,15 +54,15 @@ class MonitorTask:
                     img.save(f"debug_capture_{self.debug_count}.png")
                     self.debug_count += 1
                 
-                status = detect_status(img)
+                status, text = detect_status(img)
                 now = time.time()
                 
                 if status == 'green':
-                    self.status_var.set("满人(4/4)")
+                    self.status_var.set(text)  # 显示 "4/4"
                     self.no_green_start_time = None  # 重置防抖计时
                     self.last_alert_time = 0
                 else:
-                    self.status_var.set("有空位")
+                    self.status_var.set(text)  # 显示 "2/4", "3/4" 等
                     
                     # 首次检测到有空位，记录时间
                     if self.no_green_start_time is None:
@@ -74,9 +74,9 @@ class MonitorTask:
                         if now - self.last_alert_time >= 20:
                             if self.sound_enabled:
                                 play_sound(self.audio_path, self.volume)
-                                self.log_callback("检测到空位，已提醒")
+                                self.log_callback(f"检测到空位 ({text})，已提醒")
                             else:
-                                self.log_callback("检测到空位（静音）")
+                                self.log_callback(f"检测到空位 ({text})（静音）")
                             self.last_alert_time = now
                 
             except Exception as e:

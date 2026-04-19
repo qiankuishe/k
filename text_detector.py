@@ -4,9 +4,9 @@ from PIL import Image, ImageEnhance
 import pytesseract
 
 def detect_status(img):
-    """识别矩形区域内的文字，判断是否满人。返回: 'green' 或 'no_green'"""
+    """识别矩形区域内的文字，判断是否满人。返回: (status, text)"""
     if img is None:
-        return 'no_green'
+        return 'no_green', '未识别'
     
     try:
         # 图像预处理
@@ -30,8 +30,6 @@ def detect_status(img):
         img_binary = Image.fromarray(arr_binary)
         
         # 5. OCR识别
-        # --psm 7: 单行文本
-        # --oem 3: 默认OCR引擎
         text = pytesseract.image_to_string(
             img_binary, 
             config='--psm 7 --oem 3 -c tessedit_char_whitelist=0123456789/'
@@ -43,21 +41,23 @@ def detect_status(img):
             detect_status.debug_count = 0
         if detect_status.debug_count < 5:
             print(f"[调试] OCR识别结果: '{text}'")
-            # 保存预处理后的图像用于调试
             img_binary.save(f"debug_ocr_{detect_status.debug_count}.png")
             detect_status.debug_count += 1
         
         # 判断是否满人
-        # 满人: 4/4
         if '4/4' in text or '4／4' in text:
-            return 'green'  # 返回 'green' 表示满人（不提醒）
-        # 有空位: 包含 /4 但不是 4/4
-        elif '/4' in text or '／4' in text:
-            return 'no_green'  # 返回 'no_green' 表示有空位（提醒）
-        # 识别失败，默认为有空位（保守策略）
+            return 'green', '4/4'  # 满人
+        elif '3/4' in text or '3／4' in text:
+            return 'no_green', '3/4'  # 有空位
+        elif '2/4' in text or '2／4' in text:
+            return 'no_green', '2/4'  # 有空位
+        elif '1/4' in text or '1／4' in text:
+            return 'no_green', '1/4'  # 有空位
+        elif '0/4' in text or '0／4' in text:
+            return 'no_green', '0/4'  # 有空位
         else:
-            return 'no_green'
+            return 'no_green', '未识别'  # 识别失败
     
     except Exception as e:
         print(f"[错误] OCR识别失败: {e}")
-        return 'no_green'
+        return 'no_green', '错误'
