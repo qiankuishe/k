@@ -42,12 +42,18 @@ def check_update(current_version):
     
     return None, None
 
-def download_and_update(download_url, new_version):
+def download_and_update(download_url, new_version, cancel_check=None):
     """下载新版本并替换当前 exe"""
     temp_file = Path(f"K-{new_version}.exe.tmp")
     
     # 尝试多个镜像下载
     for mirror in DOWNLOAD_MIRRORS:
+        if cancel_check and cancel_check():
+            # 清理临时文件
+            if temp_file.exists():
+                temp_file.unlink()
+            return False
+        
         try:
             url = mirror + download_url if mirror else download_url
             resp = requests.get(url, stream=True, timeout=30)
@@ -55,6 +61,11 @@ def download_and_update(download_url, new_version):
             if resp.status_code == 200:
                 with open(temp_file, 'wb') as f:
                     for chunk in resp.iter_content(chunk_size=8192):
+                        if cancel_check and cancel_check():
+                            # 取消下载，删除临时文件
+                            f.close()
+                            temp_file.unlink()
+                            return False
                         f.write(chunk)
                 
                 # 下载成功，执行更新

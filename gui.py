@@ -6,8 +6,9 @@ from monitor_task import MonitorTask
 from window_capture import list_windows
 from region_selector import RegionSelector
 import json
+import os
 
-VERSION = "022"
+VERSION = "023"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -17,6 +18,8 @@ class MonitorGUI:
         self.root.resizable(False, False)
         self.tasks = []
         self.task_frames = []
+        self.update_thread = None
+        self.update_cancel_flag = False
         self.create_widgets()
 
     def create_widgets(self):
@@ -181,16 +184,40 @@ class MonitorGUI:
         self.log_text.config(state=tk.DISABLED)
     
     def check_update(self):
-        """检查并执行更新（后台线程）"""
-        self.log("正在检查更新...")
+        """检查并执行更新（后台线程）- 支持取消"""
         import threading
-        threading.Thread(target=self._check_update_thread, daemon=True).start()
+        
+        # 如果正在更新，取消并重新开始
+        if self.update_thread and self.update_thread.is_alive():
+            self.log("取消当前更新...")
+            self.update_cancel_flag = True
+            # 删除临时文件
+            import glob
+            for tmp_file in glob.glob("K-*.exe.tmp"):
+                try:
+                    os.remove(tmp_file)
+                except:
+                    pass
+            # 等待线程结束
+            self.update_thread.join(timeout=2)
+        
+        self.log("正在检查更新...")
+        self.update_cancel_flag = False
+        self.update_thread = threading.Thread(target=self._check_update_thread, daemon=True)
+        self.update_thread.start()
     
     def _check_update_thread(self):
         """后台检查更新"""
+        if self.update_cancel_flag:
+            return
+        
         try:
             from updater import check_update, download_and_update
             new_version, download_url = check_update(VERSION)
+            
+            if self.update_cancel_flag:
+                return
+            
             if new_version:
                 # 回到主线程显示对话框
                 self.root.after(0, lambda: self._show_update_dialog(new_version, download_url))
@@ -198,8 +225,9 @@ class MonitorGUI:
                 self.root.after(0, lambda: self.log("已是最新版本"))
                 self.root.after(0, lambda: messagebox.showinfo("检查更新", "当前已是最新版本"))
         except Exception as e:
-            self.root.after(0, lambda: self.log(f"更新失败: {str(e)}"))
-            self.root.after(0, lambda: messagebox.showerror("更新失败", str(e)))
+            if not self.update_cancel_flag:
+                self.root.after(0, lambda: self.log(f"更新失败: {str(e)}"))
+                self.root.after(0, lambda: messagebox.showerror("更新失败", str(e)))
     
     def _show_update_dialog(self, new_version, download_url):
         """显示更新对话框"""
@@ -207,7 +235,11 @@ class MonitorGUI:
             self.log(f"开始下载 v{new_version}...")
             from updater import download_and_update
             import threading
-            threading.Thread(target=lambda: download_and_update(download_url, new_version), daemon=True).start()
+            self.update_thread = threading.Thread(
+                target=lambda: download_and_update(download_url, new_version, lambda: self.update_cancel_flag), 
+                daemon=True
+            )
+            self.update_thread.start()
 
 if __name__ == "__main__":
     print(f"=== K监控工具 v{VERSION} 启动中 ===")
