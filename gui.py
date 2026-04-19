@@ -10,7 +10,7 @@ import json
 class MonitorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("监测")
+        self.root.title("K检测 v001")
         self.root.geometry("420x320")
         self.root.resizable(False, False)
         self.tasks = []

@@ -13,8 +13,8 @@ pygame.mixer.init()
 class MonitorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("游戏房间满员检测工具 v2.0")
-        self.root.geometry("700x550")
+        self.root.title("K检测 v001")
+        self.root.geometry("420x320")
         
         self.monitors = []
         self.is_running = False
