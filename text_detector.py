@@ -51,10 +51,6 @@ def detect_status(img):
             return 'no_green', '3/4'  # 有空位
         elif '2/4' in text or '2／4' in text:
             return 'no_green', '2/4'  # 有空位
-        elif '1/4' in text or '1／4' in text:
-            return 'no_green', '1/4'  # 有空位
-        elif '0/4' in text or '0／4' in text:
-            return 'no_green', '0/4'  # 有空位
         else:
             return 'no_green', '未识别'  # 识别失败
     
