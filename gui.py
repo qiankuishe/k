@@ -64,11 +64,11 @@ class MonitorGUI:
         for hwnd, title in windows:
             listbox.insert(tk.END, title)
 
-        def on_click(event):
-            sel = listbox.curselection()
-            if not sel:
+        def on_select(event):
+            if not listbox.curselection():
                 return
-            hwnd, title = windows[sel[0]]
+            sel = listbox.curselection()[0]
+            hwnd, title = windows[sel]
             dialog.destroy()
             # 置顶窗口
             import win32gui, win32con
@@ -76,9 +76,9 @@ class MonitorGUI:
             win32gui.SetForegroundWindow(hwnd)
             win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
                                   win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-            self.root.after(200, lambda: self._start_region_select(hwnd, title))
+            self.root.after(300, lambda: self._start_region_select(hwnd, title))
 
-        listbox.bind("<ButtonRelease-1>", on_click)
+        listbox.bind("<<ListboxSelect>>", on_select)
 
     def _start_region_select(self, hwnd, title):
         index = len(self.task_frames)
