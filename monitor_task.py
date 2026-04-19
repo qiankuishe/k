@@ -40,6 +40,14 @@ class MonitorTask:
         while self.running:
             try:
                 img = capture_window(self.hwnd, self.region)
+                
+                # 调试：保存截图（仅前3次）
+                if not hasattr(self, 'debug_count'):
+                    self.debug_count = 0
+                if self.debug_count < 3 and img:
+                    img.save(f"debug_capture_{self.debug_count}.png")
+                    self.debug_count += 1
+                
                 status = detect_status(img)
                 
                 if status == 'green':
