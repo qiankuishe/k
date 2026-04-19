@@ -26,12 +26,13 @@ class RegionSelector:
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
+        self.canvas.bind("<ButtonPress-3>", lambda e: self.cancel())  # 右键取消
         self.canvas.bind("<Escape>", lambda e: self.cancel())
         
         # 显示提示和倒计时
         self.hint_text = self.canvas.create_text(
             self.root.winfo_screenwidth() // 2, 50,
-            text=f"拖拽框选监测区域 (ESC取消) - {self.countdown}秒后自动解除置顶",
+            text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动解除置顶",
             fill="white", font=("Arial", 18)
         )
         
@@ -78,7 +79,7 @@ class RegionSelector:
     def update_countdown(self):
         if self.countdown > 0:
             self.canvas.itemconfig(self.hint_text, 
-                text=f"拖拽框选监测区域 (ESC取消) - {self.countdown}秒后自动解除置顶")
+                text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动解除置顶")
             self.countdown -= 1
             self.root.after(1000, self.update_countdown)
         else:
@@ -86,4 +87,4 @@ class RegionSelector:
             win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
                                   win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
             self.canvas.itemconfig(self.hint_text, 
-                text="拖拽框选监测区域 (ESC取消) - 已解除置顶", fill="yellow")
+                text="拖拽框选监测区域 (右键/ESC取消) - 已解除置顶", fill="yellow")

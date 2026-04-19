@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "015"
+VERSION = "016"
 
 class MonitorGUI:
     def __init__(self, root):
