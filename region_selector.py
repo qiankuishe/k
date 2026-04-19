@@ -84,6 +84,7 @@ class RegionSelector:
     def draw_circle(self):
         self.canvas.delete("circle")
         self.canvas.delete("radius_text")
+        self.canvas.delete("magnifier")
         
         x1 = self.center_x - self.radius
         y1 = self.center_y - self.radius
@@ -107,6 +108,35 @@ class RegionSelector:
             text=f"半径: {self.radius}px", fill="white", 
             font=("Arial", 11, "bold"), tags="radius_text"
         )
+        
+        # 半径小于15px时显示放大镜
+        if self.radius < 15:
+            mag_size = 80  # 放大镜尺寸
+            mag_x = self.center_x + 60
+            mag_y = self.center_y - 60
+            
+            # 放大镜背景
+            self.canvas.create_rectangle(mag_x - mag_size//2, mag_y - mag_size//2,
+                                         mag_x + mag_size//2, mag_y + mag_size//2,
+                                         fill='black', outline='yellow', width=2, tags="magnifier")
+            
+            # 放大3倍的圆形
+            scale = 3
+            mag_radius = self.radius * scale
+            self.canvas.create_oval(mag_x - mag_radius, mag_y - mag_radius,
+                                   mag_x + mag_radius, mag_y + mag_radius,
+                                   outline='red', width=2, dash=(3, 2), tags="magnifier")
+            
+            # 放大的十字线
+            self.canvas.create_line(mag_x - 8, mag_y, mag_x + 8, mag_y,
+                                   fill='red', width=1, tags="magnifier")
+            self.canvas.create_line(mag_x, mag_y - 8, mag_x, mag_y + 8,
+                                   fill='red', width=1, tags="magnifier")
+            
+            # 标注
+            self.canvas.create_text(mag_x, mag_y + mag_size//2 + 12,
+                                   text="3x放大", fill="yellow", 
+                                   font=("Arial", 9), tags="magnifier")
     
     def confirm(self):
         # 存储圆心和半径（相对坐标）

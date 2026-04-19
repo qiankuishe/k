@@ -8,7 +8,7 @@ from region_selector import RegionSelector
 import json
 import os
 
-VERSION = "031"
+VERSION = "032"
 
 class MonitorGUI:
     def __init__(self, root):
