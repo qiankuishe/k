@@ -3,6 +3,7 @@ import sys
 import ctypes
 import os
 import subprocess
+import time
 
 def is_admin():
     try:
@@ -10,27 +11,26 @@ def is_admin():
     except:
         return False
 
-def kill_old_instances():
-    """杀掉所有运行 gui.py 或 game_monitor.py 的 python 进程"""
+def kill_all_python():
+    """杀掉所有 python.exe 进程（除了当前进程）"""
     try:
         current_pid = os.getpid()
-        # 使用 wmic 获取所有 python 进程
-        result = subprocess.run(
-            ['wmic', 'process', 'where', 'name="python.exe"', 'get', 'ProcessId,CommandLine', '/format:csv'],
-            capture_output=True, text=True, timeout=3
-        )
+        # 使用 tasklist 获取所有 python.exe 的 PID
+        result = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq python.exe', '/FO', 'CSV', '/NH'],
+                              capture_output=True, text=True, timeout=3)
         
-        for line in result.stdout.splitlines():
-            if 'gui.py' in line or 'game_monitor.py' in line:
-                parts = line.split(',')
-                if len(parts) >= 3:
+        for line in result.stdout.strip().split('\n'):
+            if 'python.exe' in line:
+                parts = line.replace('"', '').split(',')
+                if len(parts) >= 2:
                     try:
-                        pid = int(parts[-1].strip())
+                        pid = int(parts[1])
                         if pid != current_pid:
-                            subprocess.run(['taskkill', '/F', '/PID', str(pid)], 
+                            subprocess.run(['taskkill', '/F', '/PID', str(pid)],
                                          capture_output=True, timeout=2)
                     except:
                         pass
+        time.sleep(0.5)  # 等待进程完全退出
     except:
         pass
 
@@ -41,5 +41,5 @@ def require_admin():
             None, "runas", sys.executable, " ".join(f'"{a}"' for a in sys.argv), None, 1
         )
         sys.exit()
-    # 管理员模式下，杀掉旧实例
-    kill_old_instances()
+    # 管理员模式下，杀掉所有旧 python 进程
+    kill_all_python()
