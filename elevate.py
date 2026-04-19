@@ -14,23 +14,25 @@ def kill_old_instances():
     try:
         import psutil
         current_pid = os.getpid()
-        current_name = os.path.basename(sys.executable if getattr(sys, 'frozen', False) else sys.argv[0])
+        script_name = os.path.basename(sys.argv[0])  # gui.py 或 game_monitor.py
         
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                # 跳过当前进程
                 if proc.info['pid'] == current_pid:
                     continue
-                # 匹配 python 进程运行同一脚本，或同名 exe
-                if proc.info['cmdline'] and len(proc.info['cmdline']) > 1:
-                    if sys.argv[0] in ' '.join(proc.info['cmdline']):
+                
+                # 检查是否是 python 进程运行 gui.py 或 game_monitor.py
+                cmdline = proc.info.get('cmdline')
+                if cmdline and isinstance(cmdline, list):
+                    cmdline_str = ' '.join(cmdline)
+                    if 'python' in proc.info['name'].lower() and \
+                       ('gui.py' in cmdline_str or 'game_monitor.py' in cmdline_str):
                         proc.kill()
-                elif proc.info['name'] == current_name:
-                    proc.kill()
-            except:
+                        
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
     except ImportError:
-        pass  # psutil 未安装则跳过
+        pass
 
 def require_admin():
     """若非管理员，静默以管理员重启并退出当前进程"""
