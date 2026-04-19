@@ -7,12 +7,12 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "008"
+VERSION = "009"
 
 class MonitorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title(f"K检测 v{VERSION}")
+        self.root.title(f"K监控工具 v{VERSION}")
         self.root.geometry("420x320")
         self.root.resizable(False, False)
         self.tasks = []
@@ -199,7 +199,7 @@ class MonitorGUI:
             messagebox.showerror("更新失败", str(e))
 
 if __name__ == "__main__":
-    print(f"=== K检测 v{VERSION} 启动中 ===")
+    print(f"=== K监控工具 v{VERSION} 启动中 ===")
     print(f"运行文件: {__file__}")
     from elevate import require_admin
     require_admin()
