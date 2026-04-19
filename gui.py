@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "019"
+VERSION = "020"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -181,21 +181,33 @@ class MonitorGUI:
         self.log_text.config(state=tk.DISABLED)
     
     def check_update(self):
-        """检查并执行更新"""
+        """检查并执行更新（后台线程）"""
         self.log("正在检查更新...")
+        import threading
+        threading.Thread(target=self._check_update_thread, daemon=True).start()
+    
+    def _check_update_thread(self):
+        """后台检查更新"""
         try:
             from updater import check_update, download_and_update
             new_version, download_url = check_update(VERSION)
             if new_version:
-                if messagebox.askyesno("发现新版本", f"当前版本: v{VERSION}\n最新版本: v{new_version}\n\n是否立即更新？"):
-                    self.log(f"开始下载 v{new_version}...")
-                    download_and_update(download_url, new_version)
+                # 回到主线程显示对话框
+                self.root.after(0, lambda: self._show_update_dialog(new_version, download_url))
             else:
-                self.log("已是最新版本")
-                messagebox.showinfo("检查更新", "当前已是最新版本")
+                self.root.after(0, lambda: self.log("已是最新版本"))
+                self.root.after(0, lambda: messagebox.showinfo("检查更新", "当前已是最新版本"))
         except Exception as e:
-            self.log(f"更新失败: {str(e)}")
-            messagebox.showerror("更新失败", str(e))
+            self.root.after(0, lambda: self.log(f"更新失败: {str(e)}"))
+            self.root.after(0, lambda: messagebox.showerror("更新失败", str(e)))
+    
+    def _show_update_dialog(self, new_version, download_url):
+        """显示更新对话框"""
+        if messagebox.askyesno("发现新版本", f"当前版本: v{VERSION}\n最新版本: v{new_version}\n\n是否立即更新？"):
+            self.log(f"开始下载 v{new_version}...")
+            from updater import download_and_update
+            import threading
+            threading.Thread(target=lambda: download_and_update(download_url, new_version), daemon=True).start()
 
 if __name__ == "__main__":
     print(f"=== K监控工具 v{VERSION} 启动中 ===")
