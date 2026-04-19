@@ -22,24 +22,29 @@ def detect_status(img):
     if len(circle_pixels) == 0:
         return 'no_green'
     
-    # 绿色检测：G通道明显高于R和B
-    # 策略1：明显绿色 (G > 100 且 G > R*1.3 且 G > B*1.3)
-    green_mask1 = (circle_pixels[:, 1] > 100) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 0] * 1.3) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2] * 1.3)
+    # 极度宽松的绿色检测（针对小图标）
+    # 策略1：明显绿色 (G > 80 且 G > R*1.2 且 G > B*1.2)
+    green_mask1 = (circle_pixels[:, 1] > 80) & \
+                  (circle_pixels[:, 1] > circle_pixels[:, 0] * 1.2) & \
+                  (circle_pixels[:, 1] > circle_pixels[:, 2] * 1.2)
     
-    # 策略2：中等绿色 (G > 80 且 G > R+30 且 G > B+30)
-    green_mask2 = (circle_pixels[:, 1] > 80) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 0] + 30) & \
-                  (circle_pixels[:, 1] > circle_pixels[:, 2] + 30)
-    
-    # 策略3：浅绿色 (G > 60 且 G > R+20 且 G > B+20)
-    green_mask3 = (circle_pixels[:, 1] > 60) & \
+    # 策略2：中等绿色 (G > 60 且 G > R+20 且 G > B+20)
+    green_mask2 = (circle_pixels[:, 1] > 60) & \
                   (circle_pixels[:, 1] > circle_pixels[:, 0] + 20) & \
                   (circle_pixels[:, 1] > circle_pixels[:, 2] + 20)
     
-    # 合并策略
-    green_mask = green_mask1 | green_mask2 | green_mask3
+    # 策略3：浅绿色 (G > 50 且 G > R+15 且 G > B+15)
+    green_mask3 = (circle_pixels[:, 1] > 50) & \
+                  (circle_pixels[:, 1] > circle_pixels[:, 0] + 15) & \
+                  (circle_pixels[:, 1] > circle_pixels[:, 2] + 15)
+    
+    # 策略4：任何绿色倾向 (G是最大通道 且 G > 40)
+    green_mask4 = (circle_pixels[:, 1] > circle_pixels[:, 0]) & \
+                  (circle_pixels[:, 1] > circle_pixels[:, 2]) & \
+                  (circle_pixels[:, 1] > 40)
+    
+    # 合并所有策略
+    green_mask = green_mask1 | green_mask2 | green_mask3 | green_mask4
     green_pixels = np.sum(green_mask)
     
     # 调试输出
@@ -53,5 +58,5 @@ def detect_status(img):
         print(f"[调试] 圆内像素数: {len(circle_pixels)}, 绿色像素: {green_pixels}, 平均RGB: R={avg_r:.1f} G={avg_g:.1f} B={avg_b:.1f}, 最大G={max_g}")
         detect_status.debug_count += 1
     
-    # 只要有超过5个绿色像素就认为是绿色
-    return 'green' if green_pixels > 5 else 'no_green'
+    # 只要有超过3个绿色像素就认为是绿色（降低阈值）
+    return 'green' if green_pixels > 3 else 'no_green'

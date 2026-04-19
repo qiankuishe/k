@@ -111,32 +111,55 @@ class RegionSelector:
         
         # 半径小于15px时显示放大镜
         if self.radius < 15:
-            mag_size = 80  # 放大镜尺寸
-            mag_x = self.center_x + 60
-            mag_y = self.center_y - 60
+            mag_size = 100  # 放大镜尺寸
+            
+            # 计算放大镜位置，确保在窗口内
+            window_width = self.canvas.winfo_width()
+            window_height = self.canvas.winfo_height()
+            
+            # 默认在右上方
+            mag_x = self.center_x + 80
+            mag_y = self.center_y - 80
+            
+            # 如果超出右边界，放到左边
+            if mag_x + mag_size//2 > window_width - 10:
+                mag_x = self.center_x - 80
+            
+            # 如果超出上边界，放到下方
+            if mag_y - mag_size//2 < 10:
+                mag_y = self.center_y + 80
+            
+            # 如果超出左边界，调整到右边
+            if mag_x - mag_size//2 < 10:
+                mag_x = self.center_x + 80
+            
+            # 如果超出下边界，调整到上方
+            if mag_y + mag_size//2 > window_height - 10:
+                mag_y = self.center_y - 80
             
             # 放大镜背景
             self.canvas.create_rectangle(mag_x - mag_size//2, mag_y - mag_size//2,
                                          mag_x + mag_size//2, mag_y + mag_size//2,
-                                         fill='black', outline='yellow', width=2, tags="magnifier")
+                                         fill='black', outline='yellow', width=3, tags="magnifier")
             
-            # 放大3倍的圆形
-            scale = 3
+            # 放大4倍的圆形
+            scale = 4
             mag_radius = self.radius * scale
             self.canvas.create_oval(mag_x - mag_radius, mag_y - mag_radius,
                                    mag_x + mag_radius, mag_y + mag_radius,
                                    outline='red', width=2, dash=(3, 2), tags="magnifier")
             
             # 放大的十字线
-            self.canvas.create_line(mag_x - 8, mag_y, mag_x + 8, mag_y,
-                                   fill='red', width=1, tags="magnifier")
-            self.canvas.create_line(mag_x, mag_y - 8, mag_x, mag_y + 8,
-                                   fill='red', width=1, tags="magnifier")
+            cross_size = 10
+            self.canvas.create_line(mag_x - cross_size, mag_y, mag_x + cross_size, mag_y,
+                                   fill='red', width=2, tags="magnifier")
+            self.canvas.create_line(mag_x, mag_y - cross_size, mag_x, mag_y + cross_size,
+                                   fill='red', width=2, tags="magnifier")
             
             # 标注
-            self.canvas.create_text(mag_x, mag_y + mag_size//2 + 12,
-                                   text="3x放大", fill="yellow", 
-                                   font=("Arial", 9), tags="magnifier")
+            self.canvas.create_text(mag_x, mag_y + mag_size//2 + 15,
+                                   text="4x放大", fill="yellow", 
+                                   font=("Arial", 10, "bold"), tags="magnifier")
     
     def confirm(self):
         # 存储圆心和半径（相对坐标）
