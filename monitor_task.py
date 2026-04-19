@@ -12,15 +12,21 @@ class MonitorTask:
         self.log_callback = log_callback
         self.audio_path = None
         self.sound_enabled = True
+        self.volume = 1.0  # 音量 0.0-1.0
         self.running = False
         self.thread = None
         self.last_alert_time = 0
+        self.no_green_start_time = None  # 记录首次检测到无绿色的时间
     
     def set_audio(self, path):
         self.audio_path = path
     
     def set_sound_enabled(self, enabled):
         self.sound_enabled = enabled
+    
+    def set_volume(self, volume):
+        """设置音量 0.0-1.0"""
+        self.volume = max(0.0, min(1.0, volume))
     
     def start(self, interval, status_var):
         if self.running:
@@ -49,21 +55,29 @@ class MonitorTask:
                     self.debug_count += 1
                 
                 status = detect_status(img)
+                now = time.time()
                 
                 if status == 'green':
                     self.status_var.set("有绿色")
-                    self.last_alert_time = 0  # 重置提醒计时
+                    self.no_green_start_time = None  # 重置防抖计时
+                    self.last_alert_time = 0
                 else:
                     self.status_var.set("无绿色")
-                    now = time.time()
-                    # 无绿色且距上次提醒>=15秒，播放提示音（如果启用）
-                    if now - self.last_alert_time >= 15:
-                        if self.sound_enabled:
-                            play_sound(self.audio_path)
-                            self.log_callback("无绿色，已提醒")
-                        else:
-                            self.log_callback("无绿色（静音）")
-                        self.last_alert_time = now
+                    
+                    # 首次检测到无绿色，记录时间
+                    if self.no_green_start_time is None:
+                        self.no_green_start_time = now
+                    
+                    # 防抖：持续无绿色超过8秒才开始提醒
+                    if now - self.no_green_start_time >= 8:
+                        # 每20秒重复提醒
+                        if now - self.last_alert_time >= 20:
+                            if self.sound_enabled:
+                                play_sound(self.audio_path, self.volume)
+                                self.log_callback("无绿色，已提醒")
+                            else:
+                                self.log_callback("无绿色（静音）")
+                            self.last_alert_time = now
                 
             except Exception as e:
                 self.log_callback(f"错误: {str(e)}")

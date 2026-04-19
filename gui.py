@@ -8,7 +8,7 @@ from region_selector import RegionSelector
 import json
 import os
 
-VERSION = "026"
+VERSION = "027"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -34,6 +34,14 @@ class MonitorGUI:
         tk.Label(top, text="间隔(秒):", font=('Arial', 9)).pack(side=tk.LEFT, padx=(6, 2))
         self.interval_var = tk.StringVar(value="2")
         tk.Entry(top, textvariable=self.interval_var, width=3, font=('Arial', 9)).pack(side=tk.LEFT)
+        
+        tk.Label(top, text="音量:", font=('Arial', 9)).pack(side=tk.LEFT, padx=(8, 2))
+        self.volume_var = tk.DoubleVar(value=1.0)
+        volume_slider = tk.Scale(top, from_=0, to=100, orient=tk.HORIZONTAL, 
+                                variable=self.volume_var, showvalue=False, length=60,
+                                command=self.on_volume_change)
+        volume_slider.set(100)
+        volume_slider.pack(side=tk.LEFT)
 
         # 任务列表
         self.list_frame = tk.Frame(self.root)
@@ -137,13 +145,22 @@ class MonitorGUI:
         t = self.task_frames[index]
         if t['enable_var'].get():
             interval = float(self.interval_var.get())
+            volume = self.volume_var.get() / 100.0
             t['task'].set_sound_enabled(t['sound_var'].get())
+            t['task'].set_volume(volume)
             t['task'].start(interval, t['status_var'])
             self.log(f"{t['name_var'].get()[:10]} 启动")
         else:
             t['task'].stop()
             t['status_var'].set("未启动")
             self.log(f"{t['name_var'].get()[:10]} 停止")
+    
+    def on_volume_change(self, value):
+        """音量改变时更新所有运行中的任务"""
+        volume = float(value) / 100.0
+        for t in self.task_frames:
+            if t['task']:
+                t['task'].set_volume(volume)
 
     def toggle_global(self):
         running = self.start_btn['text'] == '启动'
