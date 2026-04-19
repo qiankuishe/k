@@ -8,7 +8,7 @@ from region_selector import RegionSelector
 import json
 import os
 
-VERSION = "029"
+VERSION = "030"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -258,17 +258,21 @@ class MonitorGUI:
             self.log(f"开始下载 v{new_version}...")
             from updater import download_and_update
             import threading
+            import time
             
-            last_percent = [0]  # 用列表存储，避免闭包问题
+            last_percent = [0]
+            last_update_time = [time.time()]
             
             def progress_callback(percent, downloaded, total):
-                # 每5%更新一次，避免刷屏
-                if percent - last_percent[0] >= 5 or percent == 100:
+                now = time.time()
+                # 每10%更新一次，或者距上次更新超过30秒
+                if percent - last_percent[0] >= 10 or percent == 100 or (now - last_update_time[0] >= 30):
                     mb_downloaded = downloaded / 1024 / 1024
                     mb_total = total / 1024 / 1024
                     self.root.after(0, lambda p=percent, d=mb_downloaded, t=mb_total: 
                                    self.log(f"下载进度: {p}% ({d:.1f}/{t:.1f} MB)"))
                     last_percent[0] = percent
+                    last_update_time[0] = now
             
             self.update_thread = threading.Thread(
                 target=lambda: download_and_update(download_url, new_version, 
