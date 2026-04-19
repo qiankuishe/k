@@ -7,11 +7,12 @@ def detect_status(img):
         return 'no_green'
     
     arr = np.array(img)
-    # 绿色判定：G通道 > R+30 且 G通道 > B+30 且 G > 70
-    green_mask = (arr[:, :, 1] > arr[:, :, 0] + 30) & \
-                 (arr[:, :, 1] > arr[:, :, 2] + 30) & \
-                 (arr[:, :, 1] > 70)
     
-    # 绿色像素占比超过5%认为有绿色
+    # 绿色判定条件放宽：G通道 > R+20 且 G通道 > B+20 且 G > 60
+    green_mask = (arr[:, :, 1] > arr[:, :, 0] + 20) & \
+                 (arr[:, :, 1] > arr[:, :, 2] + 20) & \
+                 (arr[:, :, 1] > 60)
+    
+    # 绿色像素占比超过3%认为有绿色（从5%降低到3%）
     green_ratio = np.sum(green_mask) / green_mask.size
-    return 'green' if green_ratio > 0.05 else 'no_green'
+    return 'green' if green_ratio > 0.03 else 'no_green'

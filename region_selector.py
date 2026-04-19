@@ -12,10 +12,6 @@ class RegionSelector:
         self.start_x = self.start_y = 0
         self.rect = None
         
-        # 置顶窗口
-        win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, 
-                             win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-        
         # 创建全屏遮罩
         self.root = tk.Toplevel()
         self.root.attributes('-alpha', 0.3)
@@ -29,11 +25,12 @@ class RegionSelector:
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
+        self.canvas.bind("<Escape>", lambda e: self.cancel())
         
         # 显示提示
         self.canvas.create_text(
             self.root.winfo_screenwidth() // 2, 50,
-            text="拖拽鼠标框选监测区域", fill="white", font=("Arial", 20)
+            text="拖拽框选监测区域 (ESC取消)", fill="white", font=("Arial", 20)
         )
     
     def on_press(self, event):
@@ -43,7 +40,7 @@ class RegionSelector:
             self.canvas.delete(self.rect)
         self.rect = self.canvas.create_rectangle(
             self.start_x, self.start_y, self.start_x, self.start_y,
-            outline='red', width=2
+            outline='red', width=3
         )
     
     def on_drag(self, event):
@@ -57,6 +54,18 @@ class RegionSelector:
             # 转换为相对于窗口的坐标
             left, top, _, _ = win32gui.GetWindowRect(self.hwnd)
             region = (x1 - left, y1 - top, x2 - x1, y2 - y1)
+            
+            # 取消窗口置顶
+            win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
+                                  win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+            
+            self.root.destroy()
             self.callback(region)
-        
+        else:
+            self.cancel()
+    
+    def cancel(self):
+        # 取消置顶
+        win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
+                              win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         self.root.destroy()

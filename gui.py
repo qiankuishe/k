@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "013"
+VERSION = "014"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -104,10 +104,7 @@ class MonitorGUI:
         RegionSelector(hwnd, lambda region: self._on_region_selected(index, hwnd, title, region))
 
     def _on_region_selected(self, index, hwnd, title, region):
-        import win32gui, win32con
-        # 取消置顶
-        win32gui.SetWindowPos(hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
-                              win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+        # 区域已在 RegionSelector 里取消置顶
         task = MonitorTask(hwnd, region, lambda msg: self.log(msg))
         self._add_task_row(index, hwnd, title, task)
         self.log(f"已添加: {title[:12]}")
