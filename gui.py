@@ -7,10 +7,12 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
+VERSION = "002"
+
 class MonitorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("K检测 v001")
+        self.root.title(f"K检测 v{VERSION}")
         self.root.geometry("420x320")
         self.root.resizable(False, False)
         self.tasks = []
@@ -51,34 +53,51 @@ class MonitorGUI:
         # 窗口选择对话框
         dialog = tk.Toplevel(self.root)
         dialog.title("选择窗口")
-        dialog.geometry("320x220")
+        dialog.geometry("360x280")
         dialog.grab_set()
-        tk.Label(dialog, text="点击窗口开始框选区域:", pady=4, font=('Arial', 9)).pack()
+        
+        tk.Label(dialog, text="点击窗口查看并框选:", pady=6, font=('Arial', 10, 'bold')).pack()
+        
         frame = tk.Frame(dialog)
-        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
+        
         sb = tk.Scrollbar(frame)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
-        listbox = tk.Listbox(frame, yscrollcommand=sb.set, font=('Arial', 9))
+        
+        listbox = tk.Listbox(frame, yscrollcommand=sb.set, font=('Arial', 10), activestyle='dotbox')
         listbox.pack(fill=tk.BOTH, expand=True)
         sb.config(command=listbox.yview)
+        
+        # 显示简洁的窗口名
         for hwnd, title in windows:
-            listbox.insert(tk.END, title)
+            # 截取标题前40字符，去掉多余空格
+            display_name = title[:40].strip() if title else f"窗口 {hwnd}"
+            listbox.insert(tk.END, display_name)
 
         def on_select(event):
             if not listbox.curselection():
                 return
             sel = listbox.curselection()[0]
             hwnd, title = windows[sel]
-            dialog.destroy()
-            # 置顶窗口
+            
+            # 先置顶窗口让用户看到
             import win32gui, win32con
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            win32gui.SetForegroundWindow(hwnd)
-            win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
-                                  win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-            self.root.after(300, lambda: self._start_region_select(hwnd, title))
+            try:
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                win32gui.SetForegroundWindow(hwnd)
+                win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
+                                      win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+            except:
+                pass
+            
+            # 延迟关闭对话框并进入框选
+            dialog.after(500, lambda: self._confirm_and_select(dialog, hwnd, title))
 
         listbox.bind("<<ListboxSelect>>", on_select)
+    
+    def _confirm_and_select(self, dialog, hwnd, title):
+        dialog.destroy()
+        self._start_region_select(hwnd, title)
 
     def _start_region_select(self, hwnd, title):
         index = len(self.task_frames)
