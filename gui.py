@@ -53,9 +53,9 @@ class MonitorGUI:
         dialog.title("选择窗口")
         dialog.geometry("320x220")
         dialog.grab_set()
-        tk.Label(dialog, text="选择窗口:", pady=4, font=('Arial', 9)).pack()
+        tk.Label(dialog, text="点击窗口开始框选区域:", pady=4, font=('Arial', 9)).pack()
         frame = tk.Frame(dialog)
-        frame.pack(fill=tk.BOTH, expand=True, padx=8)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
         sb = tk.Scrollbar(frame)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         listbox = tk.Listbox(frame, yscrollcommand=sb.set, font=('Arial', 9))
@@ -64,13 +64,13 @@ class MonitorGUI:
         for hwnd, title in windows:
             listbox.insert(tk.END, title)
 
-        def on_select():
+        def on_click(event):
             sel = listbox.curselection()
             if not sel:
                 return
             hwnd, title = windows[sel[0]]
             dialog.destroy()
-            # 置顶并激活窗口
+            # 置顶窗口
             import win32gui, win32con
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             win32gui.SetForegroundWindow(hwnd)
@@ -78,8 +78,7 @@ class MonitorGUI:
                                   win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
             self.root.after(200, lambda: self._start_region_select(hwnd, title))
 
-        tk.Button(dialog, text="确定", command=on_select, width=8, font=('Arial', 9)).pack(pady=4)
-        listbox.bind("<Double-Button-1>", lambda e: on_select())
+        listbox.bind("<ButtonRelease-1>", on_click)
 
     def _start_region_select(self, hwnd, title):
         index = len(self.task_frames)
