@@ -3,3 +3,4 @@ Pillow
 pygame
 psutil
 numpy
+requests

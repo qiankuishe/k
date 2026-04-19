@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "004"
+VERSION = "005"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -27,6 +27,7 @@ class MonitorGUI:
                                    width=8, bg='green', fg='white', font=('Arial', 9))
         self.start_btn.pack(side=tk.LEFT, padx=2)
         tk.Button(top, text="添加", command=self.add_task, width=8, font=('Arial', 9)).pack(side=tk.LEFT, padx=2)
+        tk.Button(top, text="检查更新", command=self.check_update, width=8, font=('Arial', 9)).pack(side=tk.LEFT, padx=2)
         tk.Label(top, text="间隔(秒):", font=('Arial', 9)).pack(side=tk.LEFT, padx=(6, 2))
         self.interval_var = tk.StringVar(value="2")
         tk.Entry(top, textvariable=self.interval_var, width=3, font=('Arial', 9)).pack(side=tk.LEFT)
@@ -179,6 +180,23 @@ class MonitorGUI:
         self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
+    
+    def check_update(self):
+        """检查并执行更新"""
+        self.log("正在检查更新...")
+        try:
+            from updater import check_update, download_and_update
+            new_version, download_url = check_update(VERSION)
+            if new_version:
+                if messagebox.askyesno("发现新版本", f"当前版本: v{VERSION}\n最新版本: v{new_version}\n\n是否立即更新？"):
+                    self.log(f"开始下载 v{new_version}...")
+                    download_and_update(download_url, new_version)
+            else:
+                self.log("已是最新版本")
+                messagebox.showinfo("检查更新", "当前已是最新版本")
+        except Exception as e:
+            self.log(f"更新失败: {str(e)}")
+            messagebox.showerror("更新失败", str(e))
 
 if __name__ == "__main__":
     from elevate import require_admin
