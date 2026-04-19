@@ -8,7 +8,7 @@ from region_selector import RegionSelector
 import json
 import os
 
-VERSION = "027"
+VERSION = "028"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -197,6 +197,12 @@ class MonitorGUI:
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+        
+        # 限制日志最大100行
+        line_count = int(self.log_text.index('end-1c').split('.')[0])
+        if line_count > 100:
+            self.log_text.delete('1.0', f'{line_count - 100}.0')
+        
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
     
@@ -253,10 +259,16 @@ class MonitorGUI:
             from updater import download_and_update
             import threading
             
+            last_percent = [0]  # 用列表存储，避免闭包问题
+            
             def progress_callback(percent, downloaded, total):
-                mb_downloaded = downloaded / 1024 / 1024
-                mb_total = total / 1024 / 1024
-                self.root.after(0, lambda: self.log(f"下载进度: {percent}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)"))
+                # 每5%更新一次，避免刷屏
+                if percent - last_percent[0] >= 5 or percent == 100:
+                    mb_downloaded = downloaded / 1024 / 1024
+                    mb_total = total / 1024 / 1024
+                    self.root.after(0, lambda p=percent, d=mb_downloaded, t=mb_total: 
+                                   self.log(f"下载进度: {p}% ({d:.1f}/{t:.1f} MB)"))
+                    last_percent[0] = percent
             
             self.update_thread = threading.Thread(
                 target=lambda: download_and_update(download_url, new_version, 
