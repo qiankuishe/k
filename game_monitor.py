@@ -233,6 +233,8 @@ class AreaSelector:
         self.overlay.destroy()
 
 if __name__ == "__main__":
+    from elevate import require_admin
+    require_admin()
     root = tk.Tk()
     style = ttk.Style()
     style.configure("Treeview", rowheight=30)

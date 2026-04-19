@@ -217,3 +217,11 @@ class MonitorGUI:
                 self.interval_var.set(config.get('interval', '2'))
         except:
             pass
+
+if __name__ == "__main__":
+    from elevate import require_admin
+    require_admin()
+    import tkinter as tk
+    root = tk.Tk()
+    app = MonitorGUI(root)
+    root.mainloop()
