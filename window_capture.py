@@ -2,15 +2,21 @@
 import win32gui
 import win32ui
 import win32con
+import win32process
 from ctypes import windll
 from PIL import Image
 
 def list_windows():
-    """列出所有可见窗口"""
+    """列出所有可见窗口，返回 (hwnd, title, pid, width, height)"""
     windows = []
     def callback(hwnd, _):
         if win32gui.IsWindowVisible(hwnd) and win32gui.GetWindowText(hwnd):
-            windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+            title = win32gui.GetWindowText(hwnd)
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+            width = right - left
+            height = bottom - top
+            windows.append((hwnd, title, pid, width, height))
     win32gui.EnumWindows(callback, None)
     return windows
 

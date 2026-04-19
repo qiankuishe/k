@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "012"
+VERSION = "013"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -54,7 +54,7 @@ class MonitorGUI:
         # 窗口选择对话框
         dialog = tk.Toplevel(self.root)
         dialog.title("选择窗口")
-        dialog.geometry("360x280")
+        dialog.geometry("480x320")
         dialog.grab_set()
         
         tk.Label(dialog, text="点击窗口查看并框选:", pady=6, font=('Arial', 10, 'bold')).pack()
@@ -65,21 +65,20 @@ class MonitorGUI:
         sb = tk.Scrollbar(frame)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         
-        listbox = tk.Listbox(frame, yscrollcommand=sb.set, font=('Arial', 10), activestyle='dotbox')
+        listbox = tk.Listbox(frame, yscrollcommand=sb.set, font=('Consolas', 9), activestyle='dotbox')
         listbox.pack(fill=tk.BOTH, expand=True)
         sb.config(command=listbox.yview)
         
-        # 显示简洁的窗口名
-        for hwnd, title in windows:
-            # 截取标题前40字符，去掉多余空格
-            display_name = title[:40].strip() if title else f"窗口 {hwnd}"
+        # 显示窗口信息：标题 | 分辨率 | PID
+        for hwnd, title, pid, width, height in windows:
+            display_name = f"{title[:30]:<30} | {width}x{height:<10} | PID:{pid}"
             listbox.insert(tk.END, display_name)
 
         def on_select(event):
             if not listbox.curselection():
                 return
             sel = listbox.curselection()[0]
-            hwnd, title = windows[sel]
+            hwnd, title, pid, width, height = windows[sel]
             
             # 先置顶窗口让用户看到
             import win32gui, win32con
