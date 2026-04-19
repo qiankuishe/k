@@ -37,8 +37,12 @@ class RegionSelector:
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         self.canvas.bind("<Button-3>", lambda e: self.cancel())
         self.canvas.bind("<MouseWheel>", self.on_scroll)
-        self.canvas.bind("<Escape>", lambda e: self.cancel())
-        self.canvas.bind("<Return>", lambda e: self.confirm())
+        
+        # 键盘事件绑定到窗口
+        self.root.bind("<Escape>", lambda e: self.cancel())
+        self.root.bind("<Return>", lambda e: self.confirm())
+        self.root.bind("<KP_Enter>", lambda e: self.confirm())  # 小键盘回车
+        self.root.focus_force()  # 确保窗口获得焦点
         
         # 绘制圆形
         self.draw_circle()
@@ -74,7 +78,7 @@ class RegionSelector:
     def on_scroll(self, event):
         # 滚轮调整半径
         delta = 5 if event.delta > 0 else -5
-        self.radius = max(15, min(150, self.radius + delta))
+        self.radius = max(10, min(150, self.radius + delta))
         self.draw_circle()
     
     def draw_circle(self):
