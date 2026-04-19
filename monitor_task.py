@@ -11,12 +11,16 @@ class MonitorTask:
         self.region = region
         self.log_callback = log_callback
         self.audio_path = None
+        self.sound_enabled = True
         self.running = False
         self.thread = None
         self.last_alert_time = 0
     
     def set_audio(self, path):
         self.audio_path = path
+    
+    def set_sound_enabled(self, enabled):
+        self.sound_enabled = enabled
     
     def start(self, interval, status_var):
         if self.running:
@@ -44,10 +48,13 @@ class MonitorTask:
                 else:
                     self.status_var.set("无绿色")
                     now = time.time()
-                    # 无绿色且距上次提醒>=15秒，播放提示音
+                    # 无绿色且距上次提醒>=15秒，播放提示音（如果启用）
                     if now - self.last_alert_time >= 15:
-                        play_sound(self.audio_path)
-                        self.log_callback("无绿色，已提醒")
+                        if self.sound_enabled:
+                            play_sound(self.audio_path)
+                            self.log_callback("无绿色，已提醒")
+                        else:
+                            self.log_callback("无绿色（静音）")
                         self.last_alert_time = now
                 
             except Exception as e:

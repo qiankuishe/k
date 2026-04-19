@@ -32,7 +32,7 @@ class RegionSelector:
         # 显示提示和倒计时
         self.hint_text = self.canvas.create_text(
             self.root.winfo_screenwidth() // 2, 50,
-            text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动解除置顶",
+            text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动关闭",
             fill="white", font=("Arial", 18)
         )
         
@@ -79,12 +79,11 @@ class RegionSelector:
     def update_countdown(self):
         if self.countdown > 0:
             self.canvas.itemconfig(self.hint_text, 
-                text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动解除置顶")
+                text=f"拖拽框选监测区域 (右键/ESC取消) - {self.countdown}秒后自动关闭")
             self.countdown -= 1
             self.root.after(1000, self.update_countdown)
         else:
-            # 倒计时结束，自动取消置顶
+            # 倒计时结束，取消置顶并关闭遮罩
             win32gui.SetWindowPos(self.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0,
                                   win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-            self.canvas.itemconfig(self.hint_text, 
-                text="拖拽框选监测区域 (右键/ESC取消) - 已解除置顶", fill="yellow")
+            self.root.destroy()

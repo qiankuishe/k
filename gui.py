@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "016"
+VERSION = "017"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -119,12 +119,14 @@ class MonitorGUI:
         enable_var = tk.BooleanVar(value=False)
         tk.Checkbutton(frame, text="启用", variable=enable_var, font=('Arial', 8),
                        command=lambda: self.toggle_task(index)).pack(side=tk.LEFT, padx=2)
-        tk.Button(frame, text="声音", width=4, font=('Arial', 8),
+        sound_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(frame, text="声音", variable=sound_var, font=('Arial', 8)).pack(side=tk.LEFT, padx=1)
+        tk.Button(frame, text="导入", width=4, font=('Arial', 8),
                   command=lambda: self.import_sound(index)).pack(side=tk.LEFT, padx=1)
         tk.Button(frame, text="删除", width=4, font=('Arial', 8),
                   command=lambda: self.delete_task(index)).pack(side=tk.LEFT, padx=1)
         self.task_frames.append({'frame': frame, 'name_var': name_var, 'status_var': status_var,
-                                 'enable_var': enable_var, 'task': task})
+                                 'enable_var': enable_var, 'sound_var': sound_var, 'task': task})
 
     def toggle_task(self, index):
         if index >= len(self.task_frames):
@@ -132,6 +134,7 @@ class MonitorGUI:
         t = self.task_frames[index]
         if t['enable_var'].get():
             interval = float(self.interval_var.get())
+            t['task'].set_sound_enabled(t['sound_var'].get())
             t['task'].start(interval, t['status_var'])
             self.log(f"{t['name_var'].get()[:10]} 启动")
         else:
