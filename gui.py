@@ -7,7 +7,7 @@ from window_capture import list_windows
 from region_selector import RegionSelector
 import json
 
-VERSION = "006"
+VERSION = "007"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -199,6 +199,8 @@ class MonitorGUI:
             messagebox.showerror("更新失败", str(e))
 
 if __name__ == "__main__":
+    print(f"=== K检测 v{VERSION} 启动中 ===")
+    print(f"运行文件: {__file__}")
     from elevate import require_admin
     require_admin()
     root = tk.Tk()
