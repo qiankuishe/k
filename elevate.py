@@ -2,6 +2,7 @@
 import sys
 import ctypes
 import os
+import subprocess
 
 def is_admin():
     try:
@@ -10,28 +11,27 @@ def is_admin():
         return False
 
 def kill_old_instances():
-    """杀掉所有同名进程（除了当前进程）"""
+    """杀掉所有运行 gui.py 或 game_monitor.py 的 python 进程"""
     try:
-        import psutil
         current_pid = os.getpid()
-        script_name = os.path.basename(sys.argv[0])  # gui.py 或 game_monitor.py
+        # 使用 wmic 获取所有 python 进程
+        result = subprocess.run(
+            ['wmic', 'process', 'where', 'name="python.exe"', 'get', 'ProcessId,CommandLine', '/format:csv'],
+            capture_output=True, text=True, timeout=3
+        )
         
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            try:
-                if proc.info['pid'] == current_pid:
-                    continue
-                
-                # 检查是否是 python 进程运行 gui.py 或 game_monitor.py
-                cmdline = proc.info.get('cmdline')
-                if cmdline and isinstance(cmdline, list):
-                    cmdline_str = ' '.join(cmdline)
-                    if 'python' in proc.info['name'].lower() and \
-                       ('gui.py' in cmdline_str or 'game_monitor.py' in cmdline_str):
-                        proc.kill()
-                        
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-    except ImportError:
+        for line in result.stdout.splitlines():
+            if 'gui.py' in line or 'game_monitor.py' in line:
+                parts = line.split(',')
+                if len(parts) >= 3:
+                    try:
+                        pid = int(parts[-1].strip())
+                        if pid != current_pid:
+                            subprocess.run(['taskkill', '/F', '/PID', str(pid)], 
+                                         capture_output=True, timeout=2)
+                    except:
+                        pass
+    except:
         pass
 
 def require_admin():
