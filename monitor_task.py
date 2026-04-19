@@ -2,7 +2,7 @@
 import threading
 import time
 from window_capture import capture_window
-from color_detector import detect_status
+from text_detector import detect_status
 from audio_player import play_sound
 
 class MonitorTask:
@@ -58,25 +58,25 @@ class MonitorTask:
                 now = time.time()
                 
                 if status == 'green':
-                    self.status_var.set("有绿色")
+                    self.status_var.set("满人(4/4)")
                     self.no_green_start_time = None  # 重置防抖计时
                     self.last_alert_time = 0
                 else:
-                    self.status_var.set("无绿色")
+                    self.status_var.set("有空位")
                     
-                    # 首次检测到无绿色，记录时间
+                    # 首次检测到有空位，记录时间
                     if self.no_green_start_time is None:
                         self.no_green_start_time = now
                     
-                    # 防抖：持续无绿色超过8秒才开始提醒
+                    # 防抖：持续有空位超过8秒才开始提醒
                     if now - self.no_green_start_time >= 8:
                         # 每20秒重复提醒
                         if now - self.last_alert_time >= 20:
                             if self.sound_enabled:
                                 play_sound(self.audio_path, self.volume)
-                                self.log_callback("无绿色，已提醒")
+                                self.log_callback("检测到空位，已提醒")
                             else:
-                                self.log_callback("无绿色（静音）")
+                                self.log_callback("检测到空位（静音）")
                             self.last_alert_time = now
                 
             except Exception as e:
