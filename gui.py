@@ -8,7 +8,7 @@ from region_selector import RegionSelector
 import json
 import os
 
-VERSION = "025"
+VERSION = "026"
 
 class MonitorGUI:
     def __init__(self, root):
@@ -235,8 +235,16 @@ class MonitorGUI:
             self.log(f"开始下载 v{new_version}...")
             from updater import download_and_update
             import threading
+            
+            def progress_callback(percent, downloaded, total):
+                mb_downloaded = downloaded / 1024 / 1024
+                mb_total = total / 1024 / 1024
+                self.root.after(0, lambda: self.log(f"下载进度: {percent}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)"))
+            
             self.update_thread = threading.Thread(
-                target=lambda: download_and_update(download_url, new_version, lambda: self.update_cancel_flag), 
+                target=lambda: download_and_update(download_url, new_version, 
+                                                   lambda: self.update_cancel_flag,
+                                                   progress_callback), 
                 daemon=True
             )
             self.update_thread.start()
