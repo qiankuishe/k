@@ -78,7 +78,7 @@ class RegionSelector:
     def on_scroll(self, event):
         # 滚轮调整半径
         delta = 5 if event.delta > 0 else -5
-        self.radius = max(10, min(150, self.radius + delta))
+        self.radius = max(8, min(150, self.radius + delta))
         self.draw_circle()
     
     def draw_circle(self):
@@ -90,9 +90,9 @@ class RegionSelector:
         x2 = self.center_x + self.radius
         y2 = self.center_y + self.radius
         
-        # 绘制圆形
+        # 绘制虚线圆形
         self.canvas.create_oval(x1, y1, x2, y2, 
-                               outline='red', width=3, tags="circle")
+                               outline='red', width=2, dash=(5, 3), tags="circle")
         # 绘制十字中心线
         self.canvas.create_line(self.center_x - 10, self.center_y,
                                self.center_x + 10, self.center_y,
