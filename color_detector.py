@@ -1,25 +1,17 @@
 """颜色检测逻辑"""
 import numpy as np
-from PIL import Image
 
 def detect_status(img):
-    """
-    检测图像主要颜色状态
-    返回: 'full' (满员-绿色) 或 'vacant' (空缺-白色/黑色)
-    """
+    """检测区域是否有绿色。返回: 'green' 或 'no_green'"""
     if img is None:
-        return 'vacant'
+        return 'no_green'
     
-    # 转换为numpy数组
     arr = np.array(img)
+    # 绿色判定：G通道 > R+30 且 G通道 > B+30 且 G > 70
+    green_mask = (arr[:, :, 1] > arr[:, :, 0] + 30) & \
+                 (arr[:, :, 1] > arr[:, :, 2] + 30) & \
+                 (arr[:, :, 1] > 70)
     
-    # 计算平均RGB值
-    avg_r = np.mean(arr[:, :, 0])
-    avg_g = np.mean(arr[:, :, 1])
-    avg_b = np.mean(arr[:, :, 2])
-    
-    # 绿色判定：绿色通道明显高于红蓝通道
-    if avg_g > avg_r + 20 and avg_g > avg_b + 20 and avg_g > 80:
-        return 'full'
-    
-    return 'vacant'
+    # 绿色像素占比超过5%认为有绿色
+    green_ratio = np.sum(green_mask) / green_mask.size
+    return 'green' if green_ratio > 0.05 else 'no_green'

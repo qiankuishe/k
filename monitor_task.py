@@ -13,7 +13,7 @@ class MonitorTask:
         self.audio_path = None
         self.running = False
         self.thread = None
-        self.last_status = None
+        self.last_alert_time = 0
     
     def set_audio(self, path):
         self.audio_path = path
@@ -21,9 +21,9 @@ class MonitorTask:
     def start(self, interval, status_var):
         if self.running:
             return
-        
         self.running = True
         self.status_var = status_var
+        self.last_alert_time = 0
         self.thread = threading.Thread(target=self._monitor_loop, args=(interval,), daemon=True)
         self.thread.start()
     
@@ -36,22 +36,21 @@ class MonitorTask:
         while self.running:
             try:
                 img = capture_window(self.hwnd, self.region)
-                current_status = detect_status(img)
+                status = detect_status(img)
                 
-                # 更新状态显示
-                if current_status == 'full':
-                    self.status_var.set("已满员")
+                if status == 'green':
+                    self.status_var.set("有绿色")
+                    self.last_alert_time = 0  # 重置提醒计时
                 else:
-                    self.status_var.set("空缺")
-                
-                # 检测状态切换：满员 -> 空缺
-                if self.last_status == 'full' and current_status == 'vacant':
-                    play_sound(self.audio_path)
-                    self.log_callback("检测到空缺，已播放提示音")
-                
-                self.last_status = current_status
+                    self.status_var.set("无绿色")
+                    now = time.time()
+                    # 无绿色且距上次提醒>=15秒，播放提示音
+                    if now - self.last_alert_time >= 15:
+                        play_sound(self.audio_path)
+                        self.log_callback("无绿色，已提醒")
+                        self.last_alert_time = now
                 
             except Exception as e:
-                self.log_callback(f"监控错误: {str(e)}")
+                self.log_callback(f"错误: {str(e)}")
             
             time.sleep(interval)
